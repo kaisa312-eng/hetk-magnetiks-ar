@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="et">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hetk Magnetiks – AR proov</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    html, body { margin:0; width:100%; height:100%; overflow:hidden; font-family:system-ui,sans-serif; background:#111; }
+    #hint { position:fixed; z-index:10; top:12px; left:12px; right:12px; padding:12px 14px;
+      color:#171717; background:rgba(255,255,255,.92); border-radius:12px; font-size:14px; }
+    #start { position:fixed; z-index:20; left:50%; bottom:28px; transform:translateX(-50%);
+      border:0; border-radius:999px; padding:14px 22px; background:#171717; color:white;
+      font-size:16px; font-weight:600; }
+    #status { font-weight:700; }
+    a-scene { width:100vw; height:100vh; }
+  </style>
+</head>
+<body>
+  <div id="hint">Hetk Magnetiks AR proov · <span id="status">Vajuta „Alusta kaamerat”.</span><br>
+    Suuna kaamera prinditud magnetifotole. Esimeses katses ilmub foto peale näidisvideo lille avanemisest.</div>
+  <button id="start">Alusta kaamerat</button>
+
+  <a-scene
+    mindar-image="imageTargetSrc: ./target.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no;"
+    color-space="sRGB"
+    renderer="colorManagement: true, physicallyCorrectLights"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+    <a-assets>
+      <video id="sampleVideo"
+        src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+        preload="auto" loop muted playsinline crossorigin="anonymous"></video>
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <a-entity mindar-image-target="targetIndex: 0" id="imageTarget">
+      <!-- Väike 16:9 videopind foto keskel; nii jääb algne foto selle ümber nähtavaks. -->
+      <a-video src="#sampleVideo" width="0.62" height="0.349"
+        position="0 0 0.02" rotation="0 0 0"></a-video>
+    </a-entity>
+  </a-scene>
+
+  <script>
+    const startButton = document.getElementById('start');
+    const statusText = document.getElementById('status');
+    const video = document.getElementById('sampleVideo');
+    const sceneEl = document.querySelector('a-scene');
+    const targetEl = document.getElementById('imageTarget');
+
+    targetEl.addEventListener('targetFound', async () => {
+      statusText.textContent = 'Foto leitud – video mängib!';
+      try { await video.play(); } catch (e) {
+        statusText.textContent = 'Foto leitud – puuduta ekraani, et video käivitada.';
+      }
+    });
+    targetEl.addEventListener('targetLost', () => {
+      statusText.textContent = 'Hoia magnet kaamera vaates.';
+      video.pause();
+    });
+
+    startButton.addEventListener('click', async () => {
+      try {
+        await video.play();
+        video.pause();
+        const arSystem = sceneEl.systems['mindar-image-system'];
+        await arSystem.start();
+        startButton.style.display = 'none';
+        statusText.textContent = 'Kaamera töötab – suuna see magnetifotole.';
+      } catch (err) {
+        statusText.textContent = 'Kaamera käivitamine ebaõnnestus. Ava leht HTTPS-ühendusega ja luba kaamera kasutamine.';
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
